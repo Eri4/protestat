@@ -1,0 +1,214 @@
+/* Protestat design tokens
+   Calm navy and white for trust and readability; Albanian red only as a small accent.
+   Confidence colours are never the only signal: every badge also has words and an icon. */
+:root {
+  --bg: #f6f6f3;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --ink: #14213d;
+  --ink-2: #4a5568;
+  --ink-3: #718096;
+  --line: #e2e5ea;
+  --brand: #14213d;
+  --brand-ink: #ffffff;
+  --accent: #c8102e;
+  --focus: #2563eb;
+
+  --c-unverified: #6b7280;
+  --c-low: #b45309;
+  --c-moderate: #1d4ed8;
+  --c-high: #047857;
+  --c-confirmed: #065f46;
+  --c-disputed: #7c3aed;
+  --c-stale: #9ca3af;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgb(20 33 61 / 0.06), 0 2px 8px rgb(20 33 61 / 0.05);
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+  --fs-xl: 1.375rem; /* 22px titles */
+  --fs-lg: 1.0625rem; /* 17px card titles */
+  --fs-md: 1rem; /* 16px body */
+  --fs-sm: 0.875rem; /* 14px meta */
+  --fs-xs: 0.78rem; /* 12.5px badges */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --surface: #131c2e;
+    --surface-2: #1c2740;
+    --ink: #eef2f8;
+    --ink-2: #b8c2d3;
+    --ink-3: #8a96aa;
+    --line: #26324a;
+    --brand: #0b1220;
+    --c-unverified: #9ca3af;
+    --c-low: #f59e0b;
+    --c-moderate: #60a5fa;
+    --c-high: #34d399;
+    --c-confirmed: #10b981;
+    --c-disputed: #a78bfa;
+    --c-stale: #6b7280;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: var(--focus);
+}
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Buttons: large, at least 48px tall for easy tapping */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn.primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.btn.danger {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.btn.block {
+  width: 100%;
+}
+.btn.small {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: var(--fs-sm);
+}
+.btn:disabled {
+  opacity: 0.5;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 16px 4px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex: none;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+textarea.input {
+  padding: 12px 14px;
+  min-height: 80px;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+.small {
+  font-size: var(--fs-sm);
+}
+.xs {
+  font-size: var(--fs-xs);
+}
+.section-title {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  margin: 20px 16px 8px;
+}
+.page {
+  padding: 0 0 24px;
+}
+.pad {
+  padding: 0 16px;
+}
+.stack > * + * {
+  margin-top: 12px;
+}
+.note {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
