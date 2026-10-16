@@ -32,7 +32,10 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      # The Android SDK is already installed on GitHub's ubuntu machines (ANDROID_HOME is set),
+      # so no setup step is needed. Gradle downloads any missing SDK parts by itself.
+      - name: Check Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME" && ls "$ANDROID_HOME"
 
       - run: npx cap sync android
 
@@ -65,7 +68,8 @@ jobs:
           f=$(ls android/app/build/outputs/apk/*/*.apk | head -1)
           cp "$f" "out/Protestat-${GITHUB_REF_NAME}.apk"
           cd out && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt
-          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs *.apk | tee -a SIGNING-CERT.txt || true
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs *.apk | tee SIGNING-CERT.txt || true
 
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
