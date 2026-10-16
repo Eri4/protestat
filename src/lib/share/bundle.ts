@@ -1,6 +1,6 @@
 import { gunzipSync, gzipSync, strFromU8, strToU8 } from 'fflate';
 import { z } from 'zod';
-import { SCHEMA_VERSION, CATEGORIES, type Report, type Source } from '../model/types';
+import { SCHEMA_VERSION, CATEGORIES, POLICE_KINDS, REASONS, type Report, type Source } from '../model/types';
 
 export const BUNDLE_FORMAT = 'protestat-bundle';
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -48,6 +48,7 @@ const ReportSchema = z.object({
   timeApprox: z.boolean().optional(),
   reporter: z.object({ key: z.string().max(400), sig: z.string().max(400) }).optional(),
   stance: z.enum(['seen', 'gone']).optional(),
+  detail: z.object({ kind: z.enum(POLICE_KINDS).optional(), reason: z.enum(REASONS).optional() }).strict().optional(),
   schemaVersion: z.literal(SCHEMA_VERSION),
 });
 
@@ -148,6 +149,7 @@ function stripReport(r: Report): BundleReport {
     timeApprox: r.timeApprox,
     reporter: r.reporter,
     stance: r.stance,
+    detail: r.detail,
     schemaVersion: SCHEMA_VERSION,
   };
 }
@@ -231,9 +233,20 @@ export async function openBundle(file: Uint8Array): Promise<OpenedBundle> {
 }
 
 /** The exact fields a reporter signs on a people report. */
-export function peoplePayload(r: Pick<BundleReport, 'id' | 'category' | 'places' | 'summary' | 'publishedAt' | 'stance'>): string {
+export function peoplePayload(
+  r: Pick<BundleReport, 'id' | 'category' | 'places' | 'summary' | 'publishedAt' | 'stance' | 'detail'>,
+): string {
   const p = r.places[0];
-  return canonicalJson({ id: r.id, category: r.category, lat: p?.lat, lon: p?.lon, summary: r.summary, publishedAt: r.publishedAt, stance: r.stance });
+  return canonicalJson({
+    id: r.id,
+    category: r.category,
+    lat: p?.lat,
+    lon: p?.lon,
+    summary: r.summary,
+    publishedAt: r.publishedAt,
+    stance: r.stance,
+    detail: r.detail && (r.detail.kind || r.detail.reason) ? r.detail : undefined,
+  });
 }
 
 export async function verifyPeopleSignature(r: BundleReport): Promise<boolean> {

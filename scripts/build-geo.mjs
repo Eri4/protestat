@@ -21,6 +21,9 @@ const STOP = new Set(['qender', 'ura', 'fusha', 'kodra', 'mali', 'lumi', 'rruga'
 const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ë/g, 'e').replace(/ç/g, 'c');
 const LATIN = /^[A-Za-zÇçËë' -]{3,40}$/;
 
+// GeoNames uses international names for a few towns; show the Albanian ones.
+const NAME_SQ = { Tirana: 'Tiranë', Pristina: 'Prishtinë', 'Fier-Çifçi': 'Fier-Çifçi' };
+
 const places = [];
 for (const cc of ['AL', 'XK']) {
   const rows = fs.readFileSync(path.join(geoDir, `${cc}.txt`), 'utf8').split('\n');
@@ -43,7 +46,7 @@ for (const cc of ['AL', 'XK']) {
     if (!keys.length) continue;
     places.push({
       id: `gn:${c[0]}`,
-      name: c[1],
+      name: NAME_SQ[c[1]] ?? c[1],
       keys,
       lat: Math.round(Number(c[4]) * 1e4) / 1e4,
       lon: Math.round(Number(c[5]) * 1e4) / 1e4,

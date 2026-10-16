@@ -50,9 +50,13 @@ export function titleSimilarity(a: string, b: string): number {
   return union ? inter / union : 0;
 }
 
+/** Event types where a government building named in the text is the actual place (people gather there). */
+const PLACE_CATEGORIES = new Set(['demonstration', 'police-presence', 'road-closure']);
+
 export async function toReport(c: Candidate, src: Source, collectedAt: ISO): Promise<Report> {
   const canon = canonicalUrl(c.url);
   const text = `${c.title}. ${c.summary}`;
+  const category = c.category ?? classify(text, src.kind);
   return {
     id: (await sha256(`${src.id}|${canon}`)).slice(0, 32),
     sourceId: src.id,
@@ -64,8 +68,8 @@ export async function toReport(c: Candidate, src: Source, collectedAt: ISO): Pro
     lang: src.lang,
     publishedAt: c.publishedAt,
     collectedAt,
-    places: c.places ?? findPlaces(text),
-    category: c.category ?? classify(text, src.kind),
+    places: c.places ?? findPlaces(text, PLACE_CATEGORIES.has(category)),
+    category,
     categoryBy: 'rule',
     contentHash: (await sha256(titleKey(c.title))).slice(0, 32),
     denial: isDenial(text),

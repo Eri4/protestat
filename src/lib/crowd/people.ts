@@ -1,4 +1,4 @@
-import type { Category, PlaceRef, Report } from '../model/types';
+import type { Category, PlaceRef, Report, ReportDetail } from '../model/types';
 import { SCHEMA_VERSION } from '../model/types';
 import { nearestPlace } from '../geo/gazetteer';
 import { sha256 } from '../engine/normalize';
@@ -14,6 +14,7 @@ export interface PeopleInput {
   lon: number;
   note: string;
   stance: 'seen' | 'gone';
+  detail?: ReportDetail;
   /** When confirming an existing report, reuse its exact place so both group together. */
   place?: PlaceRef;
   town?: PlaceRef;
@@ -53,6 +54,7 @@ export async function makePeopleReport(input: PeopleInput, keys: CryptoKeyPair):
     contentHash: id,
     denial: input.stance === 'gone',
     stance: input.stance,
+    detail: input.detail && (input.detail.kind || input.detail.reason) ? { ...input.detail } : undefined,
     provenance: { origin: 'user' },
     schemaVersion: SCHEMA_VERSION,
   };

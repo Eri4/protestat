@@ -67,7 +67,7 @@ describe('people reports', () => {
     const town = { name: 'Tirana', gazetteerId: 'gn:3183875', lat: 41.33, lon: 19.82, precision: 'city' as const };
     const news = [rep({ sourceId: 'a', category: 'police-presence', places: [town] }), rep({ sourceId: 'b', category: 'police-presence', places: [town] })];
     const ppl = await people(1);
-    expect(ppl[0].places[1]?.name).toBe('Tirana');
+    expect(ppl[0].places[1]?.name).toBe('Tiranë');
     const i = buildIncidents([...ppl, ...news], sources).find((x) => x.sourceIds.includes('crowd'))!;
     expect(i.assessment.occurred).toBe('moderate');
     expect(i.assessment.reasons.map((r) => r.key)).toContain('reason.newsAlso');
@@ -82,6 +82,34 @@ describe('people reports', () => {
     const { bundle, rejected } = await openBundle(await createBundle([r, forged], [], await generateKeys()));
     expect(bundle.reports).toHaveLength(1);
     expect(rejected).toBe(1);
+  });
+});
+
+describe('what kind of police and why', () => {
+  const make = async (kind: 'plainclothes' | 'uniformed', reason: 'id-checks' | 'detentions') =>
+    makePeopleReport(
+      { category: 'police-presence', ...SKANDERBEG, note: '', stance: 'seen', detail: { kind, reason } },
+      await generateKeys(),
+    );
+  it('is part of the signed report: changing it breaks the signature', async () => {
+    const r = await make('plainclothes', 'id-checks');
+    expect(await verifyPeopleSignature(r)).toBe(true);
+    expect(await verifyPeopleSignature({ ...r, detail: { kind: 'uniformed', reason: 'id-checks' } })).toBe(false);
+    const { bundle } = await openBundle(await createBundle([r], [], await generateKeys()));
+    expect(bundle.reports[0].detail).toEqual({ kind: 'plainclothes', reason: 'id-checks' });
+  });
+  it('rejects values outside the fixed choices', async () => {
+    const r = await make('plainclothes', 'id-checks');
+    const odd = { ...r, detail: { kind: 'Agent X in a red jacket' } } as unknown as typeof r;
+    const { rejected } = await openBundle(await createBundle([odd], [], await generateKeys()));
+    expect(rejected).toBe(1);
+  });
+  it('counts each person once and lists the most common first', async () => {
+    const { peopleDetails } = await import('../src/lib/ui/explain');
+    const rs = [await make('plainclothes', 'id-checks'), await make('plainclothes', 'detentions'), await make('uniformed', 'id-checks')];
+    const d = peopleDetails(rs);
+    expect(d.kinds).toEqual([['plainclothes', 2], ['uniformed', 1]]);
+    expect(d.reasons[0]).toEqual(['id-checks', 2]);
   });
 });
 

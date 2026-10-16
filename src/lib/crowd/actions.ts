@@ -1,11 +1,17 @@
-import type { Category, Incident, Report } from '../model/types';
+import type { Category, Incident, Report, ReportDetail } from '../model/types';
 import { db } from '../store/db';
 import { rebuildIncidents } from '../engine/collector';
 import { getKeys } from '../share/keys';
 import { makePeopleReport } from './people';
 
 /** Saves a new people report from this phone (signed with this phone's key). */
-export async function reportWhatISee(input: { category: Category; lat: number; lon: number; note: string }): Promise<Report> {
+export async function reportWhatISee(input: {
+  category: Category;
+  lat: number;
+  lon: number;
+  note: string;
+  detail?: ReportDetail;
+}): Promise<Report> {
   const r = await makePeopleReport({ ...input, stance: 'seen' }, await getKeys());
   await db.reports.put(r);
   await rebuildIncidents();

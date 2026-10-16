@@ -23,6 +23,7 @@
     "dexie": "4.4.6",
     "fflate": "0.8.3",
     "maplibre-gl": "6.14.0",
+    "qrcode-generator": "^2.0.4",
     "zod": "4.6.7"
   },
   "devDependencies": {

@@ -104,6 +104,8 @@ export interface Report {
   reporter?: { key: string; sig: string };
   /** People reports only: "seen" (it's there) or "gone" (it's no longer there). */
   stance?: 'seen' | 'gone';
+  /** People reports only: what exactly was seen and why it seems to be there (fixed choices). */
+  detail?: ReportDetail;
   pinned?: boolean;
   schemaVersion: typeof SCHEMA_VERSION;
 }
@@ -142,6 +144,8 @@ export interface Incident {
   place: PlaceRef;
   /** Other places the reports mention, most-mentioned first. */
   places: PlaceRef[];
+  /** How many reports name each place (a landmark, or only the town). */
+  placeCounts: { place: PlaceRef; reports: number }[];
   title: string;
   firstSeen: ISO;
   lastSeen: ISO;
@@ -150,3 +154,33 @@ export interface Incident {
   assessment: Assessment;
   status: 'active' | 'historical' | 'stale';
 }
+
+/** What kind of police presence a person reports. Never describes individuals. */
+export const POLICE_KINDS = ['uniformed', 'plainclothes', 'special', 'unmarked'] as const;
+export type PoliceKind = (typeof POLICE_KINDS)[number];
+
+/** Why they seem to be there (one tap). */
+export const REASONS = [
+  'id-checks',
+  'vehicle-checks',
+  'detentions',
+  'guarding',
+  'blocking',
+  'following-protest',
+  'protest',
+  'accident',
+  'works',
+  'unknown',
+] as const;
+export type ReasonKey = (typeof REASONS)[number];
+
+export interface ReportDetail {
+  kind?: PoliceKind;
+  reason?: ReasonKey;
+}
+
+/** Which reasons make sense for which report type. */
+export const REASONS_FOR: Partial<Record<Category, ReasonKey[]>> = {
+  'police-presence': ['id-checks', 'vehicle-checks', 'detentions', 'guarding', 'blocking', 'following-protest', 'unknown'],
+  'road-closure': ['protest', 'blocking', 'accident', 'works', 'unknown'],
+};

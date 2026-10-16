@@ -22,20 +22,22 @@ interface Landmark {
   lat: number;
   lon: number;
   pattern: RegExp; // matched against folded text
+  /** A government building whose name is often used for the institution itself ("the Ministry said…"). */
+  institution?: boolean;
 }
 const LANDMARKS: Landmark[] = [
   { id: 'lm:skenderbej', name: 'Sheshi Skënderbej', lat: 41.3275, lon: 19.8187, pattern: /\bshesh(?:i|in|it)? (?:e )?skenderbe/ },
-  { id: 'lm:kryeministria', name: 'Kryeministria', lat: 41.3237, lon: 19.8213, pattern: /\bkryeministri(?:a|se|ne)\b/ },
-  { id: 'lm:kuvendi', name: 'Kuvendi', lat: 41.3226, lon: 19.8231, pattern: /\bkuvend(?:i|it|in)\b|\bparlament(?:i|it|in)\b/ },
-  { id: 'lm:min-arsimit', name: 'Ministria e Arsimit', lat: 41.3302, lon: 19.812, pattern: /\bministri(?:a|se|ne) (?:e |se )?arsimit\b/ },
-  { id: 'lm:min-brendshme', name: 'Ministria e Brendshme', lat: 41.3283, lon: 19.8183, pattern: /\bministri(?:a|se|ne) (?:e |se )?brendshme\b/ },
+  { id: 'lm:kryeministria', name: 'Kryeministria', lat: 41.3237, lon: 19.8213, pattern: /\bkryeministri(?:a|se|ne)\b/, institution: true },
+  { id: 'lm:kuvendi', name: 'Kuvendi', lat: 41.3226, lon: 19.8231, pattern: /\bkuvend(?:i|it|in)\b|\bparlament(?:i|it|in)\b/, institution: true },
+  { id: 'lm:min-arsimit', name: 'Ministria e Arsimit', lat: 41.3302, lon: 19.812, pattern: /\bministri(?:a|se|ne) (?:e |se )?arsimit\b/, institution: true },
+  { id: 'lm:min-brendshme', name: 'Ministria e Brendshme', lat: 41.3283, lon: 19.8183, pattern: /\bministri(?:a|se|ne) (?:e |se )?brendshme\b/, institution: true },
   { id: 'lm:qyteti-studenti', name: 'Qyteti Studenti', lat: 41.3115, lon: 19.829, pattern: /\bqytet(?:i|in|it) student/ },
   { id: 'lm:nene-tereza', name: 'Sheshi Nënë Tereza', lat: 41.3176, lon: 19.8216, pattern: /\bshesh(?:i|in|it)? (?:e )?nene terez/ },
   { id: 'lm:deshmoret', name: 'Bulevardi Dëshmorët e Kombit', lat: 41.322, lon: 19.821, pattern: /\bdeshmoret e kombit\b/ },
   { id: 'lm:piramida', name: 'Piramida', lat: 41.3229, lon: 19.8226, pattern: /\bpiramid(?:a|es|en)\b/ },
-  { id: 'lm:bashkia-tirane', name: 'Bashkia e Tiranës', lat: 41.327, lon: 19.8195, pattern: /\bbashki(?:a|se|ne) (?:e |se )?tiran/ },
+  { id: 'lm:bashkia-tirane', name: 'Bashkia e Tiranës', lat: 41.327, lon: 19.8195, pattern: /\bbashki(?:a|se|ne) (?:e |se )?tiran/, institution: true },
   { id: 'lm:hotel-dajti', name: 'ish-Hotel Dajti (Bulevardi)', lat: 41.3233, lon: 19.8199, pattern: /\bhotel(?:i|it)? dajt/ },
-  { id: 'lm:presidenca', name: 'Presidenca', lat: 41.3195, lon: 19.8178, pattern: /\bpresidenc(?:a|es|en)\b/ },
+  { id: 'lm:presidenca', name: 'Presidenca', lat: 41.3195, lon: 19.8178, pattern: /\bpresidenc(?:a|es|en)\b/, institution: true },
 ];
 
 const index = new Map<string, GPlace>();
@@ -67,12 +69,17 @@ const toRef = (p: GPlace): PlaceRef => ({
   precision: 'city',
 });
 
-/** Finds landmarks and towns mentioned in the text, most specific first, at most 3. */
-export function findPlaces(text: string): PlaceRef[] {
+/**
+ * Finds landmarks and towns mentioned in the text, most specific first, at most 3.
+ * Institutions (ministries, parliament…) count as a location only when asked: for protests or road blocks
+ * "Kryeministria" is where people stand; in a crime story it is usually just the institution talking.
+ */
+export function findPlaces(text: string, includeInstitutions = true): PlaceRef[] {
   const f = fold(text);
   const out: PlaceRef[] = [];
   const seen = new Set<string>();
   for (const lm of LANDMARKS) {
+    if (lm.institution && !includeInstitutions) continue;
     if (lm.pattern.test(f) && !seen.has(lm.id)) {
       seen.add(lm.id);
       out.push({ name: lm.name, gazetteerId: lm.id, lat: lm.lat, lon: lm.lon, precision: 'landmark' });

@@ -105,6 +105,20 @@
       </section>
     {/if}
 
+    {#if (incident.placeCounts ?? []).length}
+      <section class="where card">
+        <div class="ex-title">📍 {t('detail.where')}</div>
+        <ul>
+          {#each incident.placeCounts as pc}
+            <li>
+              <span>{pc.place.precision === 'landmark' ? pc.place.name : t('detail.whereTown', { place: pc.place.name })}</span>
+              <strong>{pc.reports === 1 ? t('detail.reports1') : t('detail.reportsN', { n: pc.reports })}</strong>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+
     <div class="facets card">
       <div><span>{t('detail.occurred')}</span><Badge state={incident.assessment.occurred} /></div>
       <div><span>{t('detail.location')}</span><Badge state={incident.assessment.location} /></div>
@@ -295,6 +309,24 @@
   }
   .answer {
     padding: 14px 16px;
+  }
+  .where {
+    padding: 14px 16px;
+  }
+  .where ul {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+  }
+  .where li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .where li:last-child {
+    border: none;
   }
   .answer p {
     margin: 0 0 10px;

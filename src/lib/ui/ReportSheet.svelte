@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import type { Map as MapLibreMap } from 'maplibre-gl';
-  import type { Category, Report } from '../model/types';
+  import { POLICE_KINDS, REASONS_FOR, type Category, type PoliceKind, type ReasonKey, type Report } from '../model/types';
   import { load, toast } from '../app.svelte';
   import { t, when } from '../i18n/i18n.svelte';
   import { reportWhatISee } from '../crowd/actions';
   import { shareText, telegramShareUrl } from '../share/io';
   import Sheet from './Sheet.svelte';
-  import { CAT_COLOR, CAT_ICON } from './meta';
+  import { CAT_COLOR, CAT_ICON, KIND_ICON } from './meta';
 
   let { onclose, onguide }: { onclose: () => void; onguide: (id: string) => void } = $props();
 
@@ -15,6 +15,9 @@
   const TYPES: Category[] = ['police-presence', 'demonstration', 'road-closure', 'emergency', 'traffic', 'hazard'];
   let category = $state<Category | null>(null);
   let note = $state('');
+  let kind = $state<PoliceKind | undefined>();
+  let reason = $state<ReasonKey | undefined>();
+  const reasons = $derived(category ? (REASONS_FOR[category] ?? []) : []);
   let saving = $state(false);
   let saved = $state<Report | null>(null);
   let mapEl = $state<HTMLDivElement>();
@@ -51,7 +54,13 @@
     saving = true;
     try {
       const c = map.getCenter();
-      saved = await reportWhatISee({ category, lat: c.lat, lon: c.lng, note });
+      saved = await reportWhatISee({
+        category,
+        lat: c.lat,
+        lon: c.lng,
+        note,
+        detail: { kind: category === 'police-presence' ? kind : undefined, reason: reasons.includes(reason!) ? reason : undefined },
+      });
       await load();
       toast(t('report.saved'));
     } finally {
@@ -63,10 +72,12 @@
     saved
       ? t('report.shareText', {
           icon: CAT_ICON[saved.category],
-          what: t(`cat.${saved.category}`),
+          what: saved.detail?.kind ? t(`kind.${saved.detail.kind}`) : t(`cat.${saved.category}`),
           place: saved.places[0].name,
           time: when(saved.publishedAt),
-        }) + (saved.summary ? `\n“${saved.summary}”` : '')
+        }) +
+        (saved.detail?.reason ? `\n${t('report.why')}: ${t(`reason.k.${saved.detail.reason}`)}` : '') +
+        (saved.summary ? `\n“${saved.summary}”` : '')
       : '',
   );
 </script>
@@ -91,6 +102,24 @@
         {/each}
       </div>
 
+      {#if category === 'police-presence'}
+        <div class="sub">{t('report.kind')}</div>
+        <div class="chips-wrap">
+          {#each POLICE_KINDS as k}
+            <button class="chip" aria-pressed={kind === k} onclick={() => (kind = kind === k ? undefined : k)}>{KIND_ICON[k]} {t(`kind.${k}`)}</button>
+          {/each}
+        </div>
+        {#if kind === 'plainclothes' || kind === 'unmarked'}<p class="note">🔒 {t('report.kindSafety')}</p>{/if}
+      {/if}
+      {#if reasons.length}
+        <div class="sub">{t('report.why')}</div>
+        <div class="chips-wrap">
+          {#each reasons as r}
+            <button class="chip" aria-pressed={reason === r} onclick={() => (reason = reason === r ? undefined : r)}>{t(`reason.k.${r}`)}</button>
+          {/each}
+        </div>
+      {/if}
+
       <div class="step">{t('report.step2')}</div>
       <div class="pick">
         <div class="mini" bind:this={mapEl}></div>
@@ -114,6 +143,16 @@
   .step {
     font-weight: 800;
     display: block;
+  }
+  .sub {
+    font-weight: 700;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .chips-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .types {
     display: grid;

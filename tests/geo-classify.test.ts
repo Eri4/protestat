@@ -6,16 +6,21 @@ const names = (t: string) => findPlaces(t).map((p) => p.name);
 
 describe('place matching', () => {
   it('handles Albanian case endings and missing ë', () => {
-    expect(names('Protesta në Tiranë')).toContain('Tirana');
+    expect(names('Protesta në Tiranë')).toContain('Tiranë');
     expect(names('Studentët e Durrësit dalin në rrugë')).toContain('Durrës');
     expect(names('Aksident në hyrje të Shkodrës')).toContain('Shkodër');
-    expect(names('Protesta ne Tirane')).toContain('Tirana');
+    expect(names('Protesta ne Tirane')).toContain('Tiranë');
     expect(names('Zjarr në Vlorë')).toContain('Vlorë');
   });
   it('finds Tirana landmarks', () => {
     expect(names('Protestuesit para Kryeministrisë')).toContain('Kryeministria');
     expect(names('Përplasje te Ministria e Arsimit')).toContain('Ministria e Arsimit');
     expect(names('Tubim në Sheshin Skënderbej')).toContain('Sheshi Skënderbej');
+  });
+  it('uses institution buildings as places only when asked (protests), not in other stories', () => {
+    expect(findPlaces('Oficeri i policisë, Ministria e Brendshme nis hetimin').map((p) => p.name)).toContain('Ministria e Brendshme');
+    expect(findPlaces('Oficeri i policisë, Ministria e Brendshme nis hetimin', false).map((p) => p.name)).not.toContain('Ministria e Brendshme');
+    expect(findPlaces('Protestuesit te Sheshi Skënderbej', false).map((p) => p.name)).toContain('Sheshi Skënderbej');
   });
   it('does not treat the Prime Minister (person) or first names as places', () => {
     expect(names('Kryeministri Rama: nuk jap dorëheqjen')).not.toContain('Kryeministria');

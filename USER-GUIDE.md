@@ -101,7 +101,9 @@ Rishpërndarjet, pëlqimet dhe artikujt e kopjuar **nuk llogariten**. Mediat e t
   - "!" vjollcë = ka kundërshtime.
 - **Kartat poshtë** rrëshqasin majtas-djathtas. Prek një kartë dhe harta shkon te ngjarja. **Detaje →** hap gjithçka.
 - **Kur zmadhon**, shfaqet zona e përafërt e ngjarjes. Kurrë nuk tregohet pika e saktë.
-- **📍** të çon afër vendit ku je (vendndodhja nuk ruhet).
+- **Kur shumë ngjarje janë në një vend** (p.sh. Tiranë), shfaqet një flluskë me numrin: prek për t'i parë veç e veç.
+- **Prek një protestë** për të parë pikat e sakta që përmendin raportet, me numrin e raporteve për secilën (p.sh. Kryeministria 10). Te Detajet, "Ku ndodhi" i rendit të gjitha.
+- **📍** vendos shenjën blu **"Ti je këtu"**. Shfaqet vetëm në telefonin tënd dhe nuk ruhet.
 - **ⓘ** shpjegon simbolet. **?** hap udhëzuesin e hartës.
 
 ---
@@ -110,6 +112,7 @@ Rishpërndarjet, pëlqimet dhe artikujt e kopjuar **nuk llogariten**. Mediat e t
 
 1. Prek **＋ Raporto**.
 2. Zgjidh llojin: **🚓 Polici në terren / postbllok**, ✊ Protestë, 🚧 Rrugë e bllokuar, 🚨 Urgjencë, 🚗 Aksident, ⚠️ Rrezik.
+   - Për polici mund të zgjedhësh edhe **llojin** (👮 me uniformë, 🕵️ policë civilë, 🛡️ forca speciale, 🚙 makina pa shenja) dhe **pse janë aty** (kontrollojnë dokumente, kontrollojnë makina, shoqërojnë njerëz, ruajnë një ndërtesë, bllokojnë rrugën, ndjekin protestën). Të dyja janë opsionale.
 3. Lëviz hartën e vogël derisa shenja të jetë mbi vend, ose prek **📍 Përdor vendndodhjen time**.
 4. Shkruaj një shënim të shkurtër nëse do (p.sh. "3 makina policie").
 5. Prek **Ruaj raportin**, pastaj **Dërgo në Telegram** që ta shohin të tjerët.
@@ -287,13 +290,16 @@ Reposts, likes and copied articles don't count.
   - a purple "!" = a conflict.
 - **The cards at the bottom** swipe left and right. Tapping one flies the map there, and **Details →** opens everything.
 - **Zooming in** shows the approximate area. The exact point is never shown.
-- **📍** takes you near where you are (your location isn't saved).
+- **Many events in one place** (e.g. Tirana) show as a bubble with a number: tap it to see them one by one.
+- **Tap a protest** to see the exact places the reports name, with how many reports name each (e.g. Kryeministria 10). In Details, "Where" lists them all.
+- **📍** puts a blue **"You are here"** pin on the map. It's shown only on your phone and never saved.
 - **ⓘ** explains the symbols.
 
 ## 5. Report what you see
 
 1. Tap **＋ Report**.
 2. Choose **🚓 Police on the ground / checkpoint**, ✊ Protest, 🚧 Blocked road, 🚨 Emergency, 🚗 Accident or ⚠️ Hazard.
+   - For police you can also choose the **kind** (👮 uniformed, 🕵️ plainclothes, 🛡️ special units, 🚙 unmarked cars) and **why they are there** (checking IDs, checking vehicles, detaining people, guarding a building, blocking the road, following the protest). Both are optional.
 3. Move the small map so the marker is on the spot, or tap **📍 Use my location**.
 4. Add a short note if you like.
 5. Tap **Save report**, then **Send on Telegram**.

@@ -11,6 +11,7 @@
 } from '../model/types';
 import { titleSimilarity } from './normalize';
 import { peopleCell } from '../crowd/people';
+import { fold } from '../geo/gazetteer';
 
 /** How long (hours) a report of each kind stays current without a new report. */
 export const LIFETIME_H: Record<Category, number> = {
@@ -31,6 +32,57 @@ const CONF_ORDER: ConfidenceState[] = ['unverified', 'low', 'moderate', 'high', 
 const stronger = (a: ConfidenceState, b: ConfidenceState) =>
   CONF_ORDER.indexOf(b) > CONF_ORDER.indexOf(a) ? b : a;
 const COPY_SIMILARITY = 0.85;
+
+/**
+ * Kinds of news where each story is its own event (one arrest, one fire, one crash), so reports are
+ * grouped by story rather than by town. Protests, checkpoints and road blocks stay grouped by town.
+ */
+const STORY_CATS = new Set<Category>(['police-notice', 'official-notice', 'emergency', 'traffic', 'hazard', 'other']);
+const STORY_STOP = new Set(
+  'policia policise policine polici policie tirane tirana tiranes tiranen shqiperi shqiperise shqiptare sot dje pasi gjate kunder persona personi person shtetas shtetasit video foto lajm fundit ndaj duke ishte eshte jane kane eshte edhe pse kush cila cili mund nese deri prej rreth tjeter tjere disa shume vetem mire'.split(' '),
+);
+const storyWords = (r: Report) =>
+  new Set(
+    (fold(r.title).match(/[a-z0-9]+/g) ?? []).filter((w) => (w.length >= 4 || /^\d{2,}$/.test(w)) && !STORY_STOP.has(w)),
+  );
+
+/** Same story: same text, or headlines sharing at least two distinctive words. Earthquakes never merge. */
+function sameStory(a: Report, b: Report): boolean {
+  if (a.contentHash === b.contentHash) return true;
+  if (a.sourceId === 'eu.emsc' || b.sourceId === 'eu.emsc') return a.canonicalUrl === b.canonicalUrl;
+  if (titleSimilarity(a.title, b.title) >= 0.5) return true;
+  const A = storyWords(a);
+  const B = storyWords(b);
+  let shared = 0;
+  for (const w of A) if (B.has(w)) shared++;
+  return shared >= 2 && shared / (A.size + B.size - shared) >= 0.25;
+}
+
+export function splitByStory(reports: Report[]): Report[][] {
+  const parent = reports.map((_, i) => i);
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  for (let i = 0; i < reports.length; i++)
+    for (let j = i + 1; j < reports.length; j++) if (sameStory(reports[i], reports[j])) parent[find(i)] = find(j);
+  const groups = new Map<number, Report[]>();
+  reports.forEach((r, i) => groups.set(find(i), [...(groups.get(find(i)) ?? []), r]));
+  return [...groups.values()];
+}
+
+/** How many reports name each place, most-named first (landmarks before the bare town on a tie). */
+function countPlaces(reports: Report[]): { place: PlaceRef; reports: number }[] {
+  const m = new Map<string, { place: PlaceRef; reports: number }>();
+  for (const r of reports) {
+    // A report counts towards its most specific place only, so "Tirana + Kryeministria" is a Kryeministria report.
+    const p = r.places.find((x) => x.precision === 'landmark') ?? r.places[0];
+    if (!p) continue;
+    const e = m.get(p.gazetteerId) ?? { place: p, reports: 0 };
+    e.reports++;
+    m.set(p.gazetteerId, e);
+  }
+  return [...m.values()].sort(
+    (a, b) => b.reports - a.reports || Number(b.place.precision === 'landmark') - Number(a.place.precision === 'landmark'),
+  );
+}
 
 // All landmarks are in Tirana; they group with Tirana city reports.
 const TIRANA_ID = 'gn:3183875';
@@ -79,6 +131,7 @@ function assess(reports: Report[], sources: Map<string, Source>, now: number, ca
   status: Incident['status'];
   place: PlaceRef;
   places: PlaceRef[];
+  placeCounts: Incident['placeCounts'];
 } {
   const reasons: Reason[] = [];
   const supporting = reports.filter((r) => !r.denial);
@@ -171,6 +224,7 @@ function assess(reports: Report[], sources: Map<string, Source>, now: number, ca
     status,
     place: best.p,
     places: votes.slice(0, 6).map((v) => v.p),
+    placeCounts: countPlaces(supporting.length ? supporting : reports),
   };
 }
 
@@ -184,6 +238,7 @@ function assessPeople(reports: Report[], now: number, category: Category): {
   status: Incident['status'];
   place: PlaceRef;
   places: PlaceRef[];
+  placeCounts: Incident['placeCounts'];
 } {
   const latest = new Map<string, Report>();
   for (const r of [...reports].sort((a, b) => eventTime(a) - eventTime(b))) latest.set(r.reporter?.key ?? r.id, r);
@@ -237,6 +292,7 @@ function assessPeople(reports: Report[], now: number, category: Category): {
     status,
     place: first.places[0],
     places: first.places,
+    placeCounts: [{ place: first.places[0], reports: seenR.length || reports.length }],
   };
 }
 
@@ -292,7 +348,12 @@ export function buildIncidents(reports: Report[], sourceList: Source[], now = Da
     let cluster: Report[] = [];
     const flush = () => {
       if (!cluster.length) return;
-      const { assessment, status, place, places } = people
+      const parts = !people && STORY_CATS.has(category) ? splitByStory(cluster) : [cluster];
+      for (const part of parts) emit(part);
+      cluster = [];
+    };
+    const emit = (cluster: Report[]) => {
+      const { assessment, status, place, places, placeCounts } = people
         ? assessPeople(cluster, now, category)
         : assess(cluster, sources, now, category);
       const lead =
@@ -306,6 +367,7 @@ export function buildIncidents(reports: Report[], sourceList: Source[], now = Da
         category,
         place,
         places,
+        placeCounts,
         title: lead.title,
         firstSeen: new Date(eventTime(cluster[0])).toISOString(),
         lastSeen: new Date(eventTime(cluster[cluster.length - 1])).toISOString(),
@@ -314,7 +376,6 @@ export function buildIncidents(reports: Report[], sourceList: Source[], now = Da
         assessment,
         status,
       });
-      cluster = [];
     };
     for (const r of list) {
       if (cluster.length && eventTime(r) - eventTime(cluster[cluster.length - 1]) > gapMs) flush();

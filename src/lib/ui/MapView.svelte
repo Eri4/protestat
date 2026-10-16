@@ -8,6 +8,7 @@
   import { t, ago } from '../i18n/i18n.svelte';
   import Badge from './Badge.svelte';
   import AgeChip from './AgeChip.svelte';
+  import { incidentIcon } from './explain';
   import { CAT_COLOR, CAT_ICON, RADIUS_M } from './meta';
 
   let { onopen, onreport, onguide }: { onopen: (i: Incident) => void; onreport: () => void; onguide: (id: string) => void } = $props();
@@ -45,6 +46,12 @@
   let selected = $state<string | null>(null);
   let showLegend = $state(false);
   const markers = new Map<string, { marker: Marker; el: HTMLElement }>();
+  const clusterMarkers: Marker[] = [];
+  const subPins: Marker[] = [];
+  let userPin: Marker | undefined;
+  /** Above this many events on one spot, zoomed out, show one bubble with the number instead. */
+  const CLUSTER_MIN = 5;
+  const CLUSTER_ZOOM = 11;
 
   const inWindow = (i: Incident) => i.status !== 'historical' && Date.parse(i.lastSeen) >= Date.now() - hours * 3600e3;
   const counts = $derived(
@@ -79,7 +86,13 @@
       type: 'FeatureCollection',
       features: visible.map((i) => ({
         type: 'Feature',
-        properties: { color: CAT_COLOR[i.category], old: i.status !== 'active', sel: i.id === selected },
+        properties: {
+          color: CAT_COLOR[i.category],
+          old: i.status !== 'active',
+          // When exact places are shown as pins, the town-wide circle stays faint.
+          sel: i.id === selected && !(i.placeCounts ?? []).some((pc) => pc.place.precision === 'landmark'),
+          wide: i.place.precision !== 'landmark',
+        },
         geometry: { type: 'Polygon', coordinates: [circle(i.place.lon, i.place.lat, RADIUS_M[i.place.precision])] },
       })),
     };
@@ -95,7 +108,19 @@
       type: 'fill',
       source: 'areas',
       minzoom: 9,
-      paint: { 'fill-color': color, 'fill-opacity': ['case', ['get', 'sel'], 0.28, ['get', 'old'], 0.08, 0.16] },
+      // Town-wide circles fade out at street zoom, where they would tint the whole screen.
+      paint: {
+        'fill-color': color,
+        'fill-opacity': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          10,
+          ['case', ['get', 'sel'], 0.28, ['get', 'old'], 0.08, 0.16],
+          13,
+          ['case', ['get', 'wide'], 0.03, ['get', 'sel'], 0.28, ['get', 'old'], 0.08, 0.16],
+        ] as unknown as ExpressionSpecification,
+      },
     });
     map.addLayer({
       id: 'area-line',
@@ -119,7 +144,7 @@
       g.forEach((i, k) => {
         if (g.length === 1) return out.set(i.id, [0, 0]);
         const a = (2 * Math.PI * k) / g.length - Math.PI / 2;
-        const r = 18 + 4 * g.length;
+        const r = Math.min(150, 18 + 5 * g.length);
         out.set(i.id, [Math.round(r * Math.cos(a)), Math.round(r * Math.sin(a))]);
       });
     }
@@ -138,7 +163,7 @@
     btn.setAttribute('aria-label', `${t(`cat.${i.category}`)}: ${i.title}`);
     const icon = document.createElement('span');
     icon.className = 'pmk-i';
-    icon.textContent = CAT_ICON[i.category];
+    icon.textContent = incidentIcon(i, app.reports.filter((r) => i.reportIds.includes(r.id)), CAT_ICON[i.category]);
     btn.append(icon);
     if (i.assessment.conflict || i.assessment.occurred === 'disputed') {
       const w = document.createElement('span');
@@ -161,18 +186,45 @@
     return root;
   }
 
+  const spotKey = (i: Incident) => `${i.place.lat.toFixed(3)},${i.place.lon.toFixed(3)}`;
+
   function syncMarkers() {
     if (!map || !loaded) return;
-    const keep = new Set(visible.map((i) => i.id));
-    for (const [id, m] of markers) {
-      if (!keep.has(id)) {
-        m.marker.remove();
-        markers.delete(id);
+    for (const m of markers.values()) m.marker.remove();
+    markers.clear();
+    for (const c of clusterMarkers.splice(0)) c.remove();
+
+    // Zoomed out, many events on one spot (e.g. 30 police stories "in Tirana") become one bubble.
+    const bySpot = new Map<string, Incident[]>();
+    for (const i of visible) bySpot.set(spotKey(i), [...(bySpot.get(spotKey(i)) ?? []), i]);
+    const clustered = new Set<string>();
+    if (map.getZoom() < CLUSTER_ZOOM) {
+      for (const group of bySpot.values()) {
+        if (group.length < CLUSTER_MIN || group.some((i) => i.id === selected)) continue;
+        for (const i of group) clustered.add(i.id);
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'pcl';
+        el.setAttribute('aria-label', t('map.cluster', { n: group.length, place: group[0].place.name }));
+        const icons = [...new Set(group.map((i) => CAT_ICON[i.category]))].slice(0, 3).join('');
+        el.innerHTML = '';
+        const ic = document.createElement('span');
+        ic.textContent = icons;
+        const n = document.createElement('strong');
+        n.textContent = String(group.length);
+        el.append(ic, n);
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          map?.flyTo({ center: [group[0].place.lon, group[0].place.lat], zoom: CLUSTER_ZOOM + 1, duration: 700 });
+        });
+        clusterMarkers.push(new maplibre.Marker({ element: el }).setLngLat([group[0].place.lon, group[0].place.lat]).addTo(map));
       }
     }
-    const off = offsets(visible);
+
+    const shown = visible.filter((i) => !clustered.has(i.id));
+    const off = offsets(shown);
     // Add in reverse so the newest/current events sit on top.
-    for (const i of [...visible].reverse()) {
+    for (const i of [...shown].reverse()) {
       markers.get(i.id)?.marker.remove();
       const elm = markerEl(i);
       const marker = new maplibre.Marker({ element: elm, offset: off.get(i.id) ?? [0, 0] }).setLngLat([i.place.lon, i.place.lat]).addTo(map);
@@ -203,11 +255,46 @@
     map.fitBounds(b, { padding: { top: 120, bottom: 200, left: 50, right: 50 }, maxZoom: 11, duration: 600 });
   }
 
+  /** For the selected event: one pin per exact place the reports name, with how many reports name it. */
+  function showSubPins(i: Incident | undefined) {
+    for (const s of subPins.splice(0)) s.remove();
+    if (!map || !i) return [];
+    const spots = (i.placeCounts ?? []).filter((pc) => pc.place.precision === 'landmark' && pc.place.gazetteerId !== i.place.gazetteerId);
+    spots.forEach((pc, rank) => {
+      const el = document.createElement('div');
+      el.className = 'psub';
+      el.style.setProperty('--c', CAT_COLOR[i.category]);
+      const dot = document.createElement('span');
+      dot.className = 'psub-dot';
+      dot.textContent = String(pc.reports);
+      el.append(dot);
+      // Names only for the most-named places, so labels don't pile up; the full list is in the details.
+      if (rank < 4) {
+        const label = document.createElement('span');
+        label.className = 'psub-l';
+        label.textContent = pc.place.name;
+        el.append(label);
+      }
+      subPins.push(new maplibre.Marker({ element: el, anchor: 'left', offset: [-11, 0] }).setLngLat([pc.place.lon, pc.place.lat]).addTo(map!));
+    });
+    return spots;
+  }
+
   async function select(i: Incident, fly: boolean) {
     selected = i.id;
-    styleMarkers();
+    syncMarkers();
+    const spots = showSubPins(i);
     (map?.getSource('areas') as GeoJSONSource | undefined)?.setData(areas());
-    if (fly) map?.flyTo({ center: [i.place.lon, i.place.lat], zoom: Math.max(map.getZoom(), 10), duration: 700 });
+    if (fly && map) {
+      if (spots.length) {
+        const b = new maplibre.LngLatBounds();
+        b.extend([i.place.lon, i.place.lat]);
+        for (const s of spots) b.extend([s.place.lon, s.place.lat]);
+        map.fitBounds(b, { padding: { top: 140, bottom: 220, left: 60, right: 120 }, maxZoom: 15, duration: 700 });
+      } else {
+        map.flyTo({ center: [i.place.lon, i.place.lat], zoom: Math.max(map.getZoom(), 10), duration: 700 });
+      }
+    }
     await tick();
     strip?.querySelector(`[data-id="${CSS.escape(i.id)}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }
@@ -242,8 +329,20 @@
       addAreaLayers();
       syncMarkers();
       fitToVisible();
+      void showMeIfAllowed();
     });
-    map.on('click', () => (selected = null));
+    let lastZoomBand = map.getZoom() < CLUSTER_ZOOM;
+    map.on('zoomend', () => {
+      const band = map!.getZoom() < CLUSTER_ZOOM;
+      if (band !== lastZoomBand) {
+        lastZoomBand = band;
+        syncMarkers();
+      }
+    });
+    map.on('click', () => {
+      selected = null;
+      showSubPins(undefined);
+    });
     map.on('error', (e) => {
       // Basemap unavailable (no internet): fall back to the bundled outline map.
       if (!offline && /style|tile|fetch|Failed/i.test(String(e.error?.message ?? ''))) useOffline();
@@ -268,22 +367,53 @@
 
   onDestroy(() => {
     for (const m of markers.values()) m.marker.remove();
+    for (const c of [...clusterMarkers, ...subPins]) c.remove();
+    userPin?.remove();
     map?.remove();
   });
 
-  function nearMe() {
+  /** Your own position as a blue pin. Shown only on this phone, never stored, never shared. */
+  function placeMe(lat: number, lon: number) {
+    if (!map) return;
+    if (!userPin) {
+      const el = document.createElement('div');
+      el.className = 'pme';
+      el.setAttribute('aria-label', t('map.you'));
+      const dot = document.createElement('span');
+      dot.className = 'pme-dot';
+      const label = document.createElement('span');
+      label.className = 'pme-l';
+      label.textContent = t('map.you');
+      el.append(dot, label);
+      userPin = new maplibre.Marker({ element: el, anchor: 'center' });
+    }
+    userPin.setLngLat([lon, lat]).addTo(map);
+  }
+
+  function locate(fly: boolean) {
     if (!navigator.geolocation) return toast(t('map.noLocation'));
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        // Rounded to ~1 km and used only to move the map. Never stored or shared.
-        const lat = Math.round(pos.coords.latitude * 100) / 100;
-        const lon = Math.round(pos.coords.longitude * 100) / 100;
-        map?.flyTo({ center: [lon, lat], zoom: 12 });
-        toast(t('map.nearMeNote'));
+        placeMe(pos.coords.latitude, pos.coords.longitude);
+        if (fly) {
+          map?.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 13 });
+          toast(t('map.nearMeNote'));
+        }
       },
-      () => toast(t('map.noLocation')),
-      { enableHighAccuracy: false, maximumAge: 600000, timeout: 15000 },
+      () => fly && toast(t('map.noLocation')),
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 },
     );
+  }
+  const nearMe = () => locate(true);
+
+  /** If the user already allowed location before, show the pin straight away (no prompt). */
+  async function showMeIfAllowed() {
+    try {
+      const st = await navigator.permissions?.query({ name: 'geolocation' as PermissionName });
+      if (st?.state === 'granted') locate(false);
+    } catch {
+      /* permissions API not available: wait for the button */
+    }
   }
 </script>
 
@@ -644,6 +774,74 @@
     opacity: 1;
     filter: none;
     box-shadow: 0 0 0 4px rgb(255 255 255 / 0.7), 0 4px 12px rgb(0 0 0 / 0.4);
+  }
+  :global(.pcl) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px 6px 8px;
+    border-radius: 999px;
+    border: 3px solid #fff;
+    background: #14213d;
+    color: #fff;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+    font: 800 15px/1 system-ui, sans-serif;
+    cursor: pointer;
+  }
+  :global(.pcl span) {
+    font-size: 16px;
+  }
+  :global(.psub) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+  }
+  :global(.psub-dot) {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--c);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+    color: #fff;
+    font: 800 11px/18px system-ui, sans-serif;
+    text-align: center;
+  }
+  :global(.psub-l) {
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: #fff;
+    color: #14213d;
+    font: 700 12px/1.2 system-ui, sans-serif;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+    white-space: nowrap;
+  }
+  :global(.pme) {
+    position: relative;
+    width: 22px;
+    height: 22px;
+  }
+  :global(.pme-dot) {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #2563eb;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 6px rgb(37 99 235 / 0.25), 0 2px 6px rgb(0 0 0 / 0.4);
+  }
+  :global(.pme-l) {
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font: 800 11px/1.4 system-ui, sans-serif;
+    white-space: nowrap;
   }
   /* Keep MapLibre's zoom buttons and credits clear of the filter bar. */
   .wrap :global(.maplibregl-ctrl-top-right) {

@@ -26,6 +26,13 @@ export const CAT_COLOR: Record<Category, string> = {
   other: '#64748b',
 };
 
+export const KIND_ICON: Record<string, string> = {
+  uniformed: '👮',
+  plainclothes: '🕵️',
+  special: '🛡️',
+  unmarked: '🚙',
+};
+
 export const CONF_ICON: Record<ConfidenceState, string> = {
   unverified: '?',
   low: '●',
