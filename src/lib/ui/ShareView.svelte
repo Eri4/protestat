@@ -5,7 +5,9 @@
   import { BundleError, type SharedSource } from '../share/bundle';
   import { addSharedSource, exportReports, importBundle, myFingerprint, readFileInput, shareFile } from '../share/io';
 
-  let { onguide }: { onguide: (id: string) => void } = $props();
+  import GroupPanel from './GroupPanel.svelte';
+
+  let { onguide, pendingJoin = '' }: { onguide: (id: string) => void; pendingJoin?: string } = $props();
   let days = $state(1);
   let busy = $state(false);
   let fp = $state('');
@@ -54,6 +56,7 @@
 
 <div class="page pad stack">
   <p class="intro">{t('intro.share')} <button class="hl" onclick={() => onguide('share')}>{t('help.how')}</button></p>
+  <GroupPanel {onguide} {pendingJoin} />
   <section class="card box stack">
     <h2>📤 {t('share.title')}</h2>
     <p class="muted">{t('share.help')}</p>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Plain http is allowed at the system level only so phones can reach a group server hosted on
+  another phone over Wi-Fi/hotspot (addresses like 192.168.43.1, which can't get certificates).
+  The app's own code refuses http to anything except private local addresses, and group data
+  is encrypted end-to-end anyway. All news sources are fetched over https.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

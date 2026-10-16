@@ -66,6 +66,8 @@ export async function refresh(force: boolean): Promise<void> {
   app.progress = { done: 0, total: 0 };
   try {
     await refreshAll(force, (done, total) => (app.progress = { done, total }));
+    // Optional group: share what's new and fetch what others shared (does nothing if not in a group).
+    await import('./sync/sync').then((m) => m.syncNow()).catch(() => {});
   } finally {
     app.refreshing = false;
     await load();

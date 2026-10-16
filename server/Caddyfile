@@ -1,0 +1,7 @@
+# Replace with your domain. Caddy gets and renews the HTTPS certificate by itself.
+relay.example.org {
+	reverse_proxy relay:8787
+	log {
+		output discard
+	}
+}

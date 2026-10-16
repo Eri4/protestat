@@ -1,0 +1,22 @@
+# Relay + automatic HTTPS (Let's Encrypt) for your own domain.
+#   1. Point a domain (e.g. relay.example.org) to this server's IP.
+#   2. Put it in the Caddyfile.
+#   3. docker compose up -d
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - relay-data:/data
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+volumes:
+  relay-data:
+  caddy-data:

@@ -22,6 +22,13 @@
   let hideBrowserNote = $state(false);
   let guide = $state<string | null>(null);
   let reporting = $state(false);
+  let pendingJoin = $state('');
+  const handleLink = (url?: string | null) => {
+    if (url?.startsWith('protestat://join')) {
+      pendingJoin = url;
+      tab = 'share';
+    }
+  };
   const openGuide = (id: string) => (guide = id);
 
   const TABS: [Tab, string, string][] = [
@@ -34,6 +41,12 @@
   onMount(() => {
     document.documentElement.lang = i18n.lang;
     void init();
+    if (isNative()) {
+      void import('@capacitor/app').then(async ({ App }) => {
+        App.addListener('appUrlOpen', (e) => handleLink(e.url));
+        handleLink((await App.getLaunchUrl())?.url);
+      });
+    }
   });
 
   const statusText = $derived(
@@ -92,7 +105,7 @@
     {:else if tab === 'sources'}
       <SourcesView onguide={openGuide} />
     {:else}
-      <ShareView onguide={openGuide} />
+      {#key pendingJoin}<ShareView onguide={openGuide} {pendingJoin} />{/key}
     {/if}
   </main>
 
