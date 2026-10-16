@@ -182,6 +182,20 @@ Këto platforma nuk lejojnë lexim automatik. Prandaj:
 
 ---
 
+## 8b. Grupi (opsional): ndaj automatikisht
+
+Një grup i lejon disa telefona të ndajnë raporte dhe burime vetë, çdo minutë, pa dërguar skedarë.
+
+1. **Krijo:** te **Ndaj** prek **Krijo grup** dhe zgjidh ku do të jetë serveri:
+   - **📱 Në këtë telefon** (vetëm Android): për njerëz në të njëjtin Wi-Fi ose të lidhur me hotspot-in tënd. Punon edhe pa internet. Del një njoftim; me **Ndalo** e fik.
+   - **🖥️ Në serverin tim**: një VPS ose kompjuter (udhëzimet janë te "Si ta ngre një server?"). Punon përmes internetit për të gjithë.
+2. **Fto:** prek **Fto të tjerë** dhe dërgo kodin në Telegram, ose lëri ta skanojnë si QR.
+3. **Bashkohu:** të tjerët prekin kodin, ose **Bashkohu me kod** dhe e ngjisin.
+
+- 🔐 Gjithçka enkriptohet në telefon. Serveri ruan vetëm të dhëna të palexueshme dhe i fshin pas 72 orësh. Ndaje kodin vetëm me njerëz që i beson.
+- Raportet e njerëzve mbeten të nënshkruara, ndaj çdo person numërohet një herë.
+- **Largohu nga grupi** ose fikja e serverit nuk fshin asgjë: gjithçka e marrë mbetet në telefon.
+
 ## 9. Cilësimet
 
 - **Gjuha:** Shqip ose English.
@@ -348,6 +362,20 @@ The app can't read these automatically. Instead:
 - **Receive reports:** open the `.protestat` file you were sent.
 - The file holds **only public news**, never your location, photos or settings.
 - Received reports never raise trust on their own.
+
+## 8b. Groups (optional): share automatically
+
+A group lets several phones share reports and sources by themselves, every minute, without sending files.
+
+1. **Create:** in **Share** tap **Create a group** and choose where the server runs:
+   - **📱 On this phone** (Android only): for people on the same Wi‑Fi or connected to your hotspot. Works without internet. A notification shows while it runs; **Stop** turns it off.
+   - **🖥️ On my server**: a VPS or computer (see "How do I set up a server?"). Works over the internet for everyone.
+2. **Invite:** tap **Invite others** and send the code on Telegram, or let them scan the QR code.
+3. **Join:** the others tap the code, or **Join with a code** and paste it.
+
+- 🔐 Everything is encrypted on the phone. The server only stores unreadable data and deletes it after 72 hours. Share the code only with people you trust.
+- People reports stay signed, so each person still counts once.
+- **Leaving** the group or turning the server off deletes nothing: everything received stays on the phone.
 
 ## 9. Settings
 

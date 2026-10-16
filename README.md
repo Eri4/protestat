@@ -73,6 +73,10 @@ Të lëna jashtë qëllimisht: faqet që e ndalojnë leximin automatik në robot
 
 1 person = e paverifikuar, 2 = e ulët, 3+ = mesatare. Raportet e njerëzve vetëm nuk arrijnë kurrë "e lartë", sepse dikush me shumë telefona mund t'i falsifikojë. Kur edhe mediat raportojnë të njëjtën gjë, vlerësimi rritet; kur e mohojnë, shfaqet ⚠️ Kundërshtim. Raportet e policisë në terren vjetrohen pas 3 orësh. Çdo raport është i nënshkruar nga telefoni që e bëri, ndaj nuk mund të shumëfishohet duke e ripërcjellë.
 
+## Grupi (opsional)
+
+Telefonat mund të ndajnë raporte automatikisht në një **grup**. Serveri e zgjedh përdoruesi: **në telefonin e vet** (Android, përmes Wi-Fi/hotspot, edhe pa internet) ose **në një VPS** (shiko [server/README.md](server/README.md)). Gjithçka enkriptohet në telefon; serveri nuk e lexon dot dhe e fshin pas 72 orësh. Hyrja bëhet me një kod/QR.
+
 ## Siguria dhe privatësia
 
 - Nuk njeh fytyra, nuk identifikon njerëz dhe nuk ndjek askënd.
@@ -114,6 +118,8 @@ The phone reads public sources directly when you open the app or tap ⟳. Report
 **Sources and trust levels:** 55+ Albanian-language sources (Albania, Kosovo, North Macedonia) ranked A (official), B (verified newsroom), C (portal/aggregator), D (unverified: your own sources, Telegram, social links, people reports). Sites whose robots.txt forbids automated reading are excluded.
 
 **People reports:** tap **＋ Report**, choose what you see (🚓 police on the ground / checkpoint, ✊ protest, 🚧 blocked road…), place the marker and save. Others tap **👍 I see it too** or **👋 It's gone**. 1 person = unverified, 2 = low, 3+ = moderate; people alone never reach "high". News that agrees raises it; news that denies it shows ⚠️ Conflict. Every people report is signed by the phone that made it, so forwarding can't multiply it.
+
+**Groups (optional):** phones can share automatically through a group server chosen by users: on an Android phone (Wi‑Fi/hotspot, works offline) or on a VPS ([server/README.md](server/README.md)). Data is end-to-end encrypted; the server cannot read it and deletes it after 72 hours. Join with a code or QR.
 
 **Guides:** the **?** button opens step-by-step guides for every feature.
 

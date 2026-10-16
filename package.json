@@ -1,6 +1,6 @@
 {
   "name": "protestat",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Local-first, bilingual (sq/en) public situational-awareness app for Albania. No server, no accounts.",
   "license": "GPL-3.0-or-later",
